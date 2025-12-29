@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Optimización de rutas</title>
+</head>
+<body>
+    <h2>Optimización de rutas</h2>
+
+    <!-- TODO debe estar dentro del form -->
+    <form method="post" action="/optimize">
+
+        <label>Número de vehículos:</label><br>
+        <select name="vehiculos">
+            <option value="1">1 vehículo</option>
+            <option value="2">2 vehículos</option>
+            <option value="3">3 vehículos</option>
+        </select>
+        <br><br>
+
+        <label>Dirección de acopio:</label><br>
+        <input type="text" name="acopio" required><br><br>
+
+        <label>Direcciones de recogida:</label><br>
+        <input type="text" name="direccion1"><br>
+        <input type="text" name="direccion2"><br>
+        <input type="text" name="direccion3"><br>
+        <input type="text" name="direccion4"><br>
+        <input type="text" name="direccion5"><br><br>
+
+        <button type="submit">Optimizar rutas</button>
+    </form>
+
+</body>
+</html>

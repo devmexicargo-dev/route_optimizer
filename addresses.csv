@@ -1,9 +1,0 @@
-direccion
-Bodega Medellín, Antioquia
-Cra 43A #1-50, Medellín
-Envigado parque principal
-Itagüí centro
-Bello Antioquia
-
-addresses = load_addresses()
-print("Direcciones cargadas:", addresses)

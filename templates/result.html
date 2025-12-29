@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Resultado</title>
+    <style>
+        #map {
+            height: 600px;
+            width: 100%;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Resultado de la optimización</h2>
+
+<p>
+    <a href="/download/excel" style="
+        padding:10px 15px;
+        background:#1d6f42;
+        color:white;
+        text-decoration:none;
+        border-radius:5px;
+        font-weight:bold;
+    ">
+        📥 Descargar historial de rutas (Excel)
+    </a>
+</p>
+
+
+{% for ruta in rutas %}
+    <h3>Vehículo {{ ruta.vehiculo }}</h3>
+
+    <p>
+        🧭 
+        <a href="{{ ruta.maps_url }}" target="_blank">
+            Abrir ruta en Google Maps
+        </a>
+    </p>
+
+    <ul>
+        {% for parada in ruta.paradas %}
+            {% if loop.first %}
+                <li><strong>🏢 ACOPIO:</strong> {{ parada }}</li>
+            {% else %}
+                <li>📍 {{ parada }}</li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+{% endfor %}
+
+
+<div id="map"></div>
+
+<script>
+    const rutas = {{ rutas | tojson }};
+</script>
+
+<script
+    src="https://maps.googleapis.com/maps/api/js?key={{ request.app.state.GOOGLE_MAPS_API_KEY }}">
+</script>
+
+<script>
+function initMap() {
+    const map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 12,
+        center: { lat: 6.2442, lng: -75.5812 } // Medellín (default)
+    });
+
+    const colors = ["#FF0000", "#0000FF", "#00AA00", "#FF9900"];
+
+    rutas.forEach((ruta, i) => {
+        if (ruta.paradas.length < 2) return;
+
+        const waypoints = ruta.paradas.slice(1, -1).map(addr => ({
+            location: addr,
+            stopover: true
+        }));
+
+        const directionsService = new google.maps.DirectionsService();
+        const directionsRenderer = new google.maps.DirectionsRenderer({
+            map: map,
+            polylineOptions: {
+                strokeColor: colors[i % colors.length],
+                strokeWeight: 4
+            },
+            suppressMarkers: false
+        });
+
+        directionsService.route({
+            origin: ruta.paradas[0],
+            destination: ruta.paradas[ruta.paradas.length - 1],
+            waypoints: waypoints,
+            travelMode: google.maps.TravelMode.DRIVING
+        }, (result, status) => {
+            if (status === "OK") {
+                directionsRenderer.setDirections(result);
+            } else {
+                console.error("Error ruta:", status);
+            }
+        });
+    });
+}
+
+initMap();
+</script>
+
+<a href="/">← Volver</a>
+
+</body>
+</html>
