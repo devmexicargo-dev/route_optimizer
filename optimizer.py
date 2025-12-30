@@ -37,7 +37,7 @@ def optimize_routes(time_matrix, num_vehicles=1):
     routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
 
     # ⏱️ DIMENSIÓN DE TIEMPO
-    MAX_TIME_PER_VEHICLE = 2 * 60 * 60  # 2 horas
+    MAX_TIME_PER_VEHICLE = 23 * 60 * 60  # 24 horas
 
     routing.AddDimension(
         transit_callback_index,

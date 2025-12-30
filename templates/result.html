@@ -41,7 +41,9 @@
     <ul>
         {% for parada in ruta.paradas %}
             {% if loop.first %}
-                <li><strong>🏢 ACOPIO:</strong> {{ parada }}</li>
+                <li><strong>🏢 ACOPIO (SALIDA):</strong> {{ parada }}</li>
+            {% elif loop.last %}
+                <li><strong>🏁 ACOPIO (REGRESO):</strong> {{ parada }}</li>
             {% else %}
                 <li>📍 {{ parada }}</li>
             {% endif %}
