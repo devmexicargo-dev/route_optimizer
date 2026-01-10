@@ -1,56 +1,103 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Resultado</title>
+    <meta charset="UTF-8">
+    <title>Resultado de la optimización</title>
+
     <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        li {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-left: 4px solid #ccc;
+            background: #f9f9f9;
+        }
+
+        .acopio {
+            border-left-color: #1d6f42;
+            background: #e9f6ef;
+            font-weight: bold;
+        }
+
+        .parada {
+            border-left-color: #d9534f;
+        }
+
         #map {
             height: 600px;
             width: 100%;
-            margin-top: 20px;
+            margin-top: 30px;
+            border: 1px solid #ccc;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            background: #1d6f42;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 20px;
         }
     </style>
 </head>
+
 <body>
 
 <h2>Resultado de la optimización</h2>
 
-<p>
-    <a href="/download/excel" style="
-        padding:10px 15px;
-        background:#1d6f42;
-        color:white;
-        text-decoration:none;
-        border-radius:5px;
-        font-weight:bold;
-    ">
-        📥 Descargar historial de rutas (Excel)
-    </a>
-</p>
-
+<a href="/download/excel" class="btn">
+    📥 Descargar historial de rutas (Excel)
+</a>
 
 {% for ruta in rutas %}
-    <h3>Vehículo {{ ruta.vehiculo }}</h3>
+    <h3>🚚 Vehículo {{ ruta.vehiculo }}</h3>
 
     <p>
         🧭 
-        <a href="{{ ruta.maps_url }}" target="_blank">
+        <a href="{{ ruta.maps_url }}" target="_blank"
+        style="font-weight:bold; color:#1d6f42;">
             Abrir ruta en Google Maps
         </a>
     </p>
 
+
     <ul>
-        {% for parada in ruta.paradas %}
+        {% for p in ruta.paradas %}
             {% if loop.first %}
-                <li><strong>🏢 ACOPIO (SALIDA):</strong> {{ parada }}</li>
+                <li class="acopio">
+                    🏢 ACOPIO (SALIDA)<br>
+                    {{ p.direccion }}<br>
+                    ⏰ Sale a las: {{ p.llegada }}
+                </li>
+
             {% elif loop.last %}
-                <li><strong>🏁 ACOPIO (REGRESO):</strong> {{ parada }}</li>
+                <li class="acopio">
+                    🏁 ACOPIO (REGRESO)<br>
+                    {{ p.direccion }}<br>
+                    ⏰ Llega a las: {{ p.llegada }}
+                </li>
+
             {% else %}
-                <li>📍 {{ parada }}</li>
+                <li class="parada">
+                    📍 {{ p.direccion }}<br>
+                    🕒 Llega: {{ p.llegada }}<br>
+                    ⏳ Espera: {{ p.espera }} min<br>
+                    🚚 Sale: {{ p.salida }}
+                </li>
             {% endif %}
         {% endfor %}
     </ul>
 {% endfor %}
-
 
 <div id="map"></div>
 
@@ -64,9 +111,10 @@
 
 <script>
 function initMap() {
+
     const map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 12,
-        center: { lat: 6.2442, lng: -75.5812 } // Medellín (default)
+        zoom: 11,
+        center: { lat: 40.7128, lng: -74.0060 } // New York por defecto
     });
 
     const colors = ["#FF0000", "#0000FF", "#00AA00", "#FF9900"];
@@ -74,8 +122,10 @@ function initMap() {
     rutas.forEach((ruta, i) => {
         if (ruta.paradas.length < 2) return;
 
-        const waypoints = ruta.paradas.slice(1, -1).map(addr => ({
-            location: addr,
+        const paradas = ruta.paradas.map(p => p.direccion);
+
+        const waypoints = paradas.slice(1, -1).map(dir => ({
+            location: dir,
             stopover: true
         }));
 
@@ -90,15 +140,15 @@ function initMap() {
         });
 
         directionsService.route({
-            origin: ruta.paradas[0],
-            destination: ruta.paradas[ruta.paradas.length - 1],
+            origin: paradas[0],
+            destination: paradas[paradas.length - 1],
             waypoints: waypoints,
             travelMode: google.maps.TravelMode.DRIVING
         }, (result, status) => {
             if (status === "OK") {
                 directionsRenderer.setDirections(result);
             } else {
-                console.error("Error ruta:", status);
+                console.error("Error en ruta:", status);
             }
         });
     });
@@ -107,6 +157,7 @@ function initMap() {
 initMap();
 </script>
 
+<br>
 <a href="/">← Volver</a>
 
 </body>
