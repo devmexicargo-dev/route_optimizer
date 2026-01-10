@@ -5,18 +5,15 @@
     <title>Resultado de la optimización</title>
 
     <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
+        body { font-family: Arial, sans-serif; }
 
-        ul {
-            list-style: none;
-            padding-left: 0;
-        }
+        h3, h4 { margin-top: 25px; }
+
+        ul { list-style: none; padding-left: 0; }
 
         li {
             margin-bottom: 10px;
-            padding: 8px;
+            padding: 10px;
             border-left: 4px solid #ccc;
             background: #f9f9f9;
         }
@@ -27,15 +24,11 @@
             font-weight: bold;
         }
 
-        .parada {
-            border-left-color: #d9534f;
-        }
+        .parada { border-left-color: #d9534f; }
 
-        #map {
-            height: 600px;
-            width: 100%;
-            margin-top: 30px;
-            border: 1px solid #ccc;
+        .no-visitada {
+            border-left-color: #777;
+            background: #f0f0f0;
         }
 
         .btn {
@@ -48,6 +41,14 @@
             display: inline-block;
             margin-bottom: 20px;
         }
+
+        /* 🔥 CLAVE ABSOLUTA 🔥 */
+        #map {
+            width: 100%;
+            height: 600px;
+            margin-top: 30px;
+            border: 1px solid #ccc;
+        }
     </style>
 </head>
 
@@ -55,138 +56,131 @@
 
 <h2>Resultado de la optimización</h2>
 
-<a href="/download/excel" class="btn">
-    📥 Descargar historial de rutas (Excel)
-</a>
+<a href="/download/excel" class="btn">📥 Descargar historial de rutas (Excel)</a>
 
 {% for ruta in rutas %}
-    <h3>🚚 Vehículo {{ ruta.vehiculo }}</h3>
+<h3>🚚 Vehículo {{ ruta.vehiculo }}</h3>
 
-    <p>
-        {% if ruta.mapas %}
-            <h4>🧭 Tramos de la ruta</h4>
-            <ul>
-                {% for m in ruta.mapas %}
-                    <li>
-                        🧭 Tramo {{ m.tramo }}<br>
-                        Desde: {{ m.desde }}<br>
-                        Hasta: {{ m.hasta }}<br>
-                        <a href="{{ m.url }}" target="_blank"
-                        style="color:#1d6f42; font-weight:bold;">
-                            Abrir en Google Maps
-                        </a>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    </p>
+{% if ruta.mapas %}
+<h4>🧭 Tramos de la ruta</h4>
+<ul>
+{% for m in ruta.mapas %}
+<li>
+<strong>Tramo {{ m.tramo }}</strong><br>
+Desde: {{ m.desde }}<br>
+Hasta: {{ m.hasta }}<br>
+<a href="{{ m.url }}" target="_blank">Abrir en Google Maps</a>
+</li>
+{% endfor %}
+</ul>
+{% endif %}
 
-
-    <ul>
-        {% for p in ruta.paradas %}
-            {% if loop.first %}
-                <li class="acopio">
-                    🏢 ACOPIO (SALIDA)<br>
-                    {{ p.direccion }}<br>
-                    ⏰ Sale a las: {{ p.llegada }}
-                </li>
-
-            {% elif loop.last %}
-                <li class="acopio">
-                    🏁 ACOPIO (REGRESO)<br>
-                    {{ p.direccion }}<br>
-                    ⏰ Llega a las: {{ p.llegada }}
-                </li>
-
-            {% else %}
-                <li class="parada">
-                    📍 {{ p.direccion }}<br>
-                    🕒 Llega: {{ p.llegada }}<br>
-                    ⏳ Espera: {{ p.espera }} min<br>
-                    🚚 Sale: {{ p.salida }}
-                </li>
-            {% endif %}
-        {% endfor %}
-    </ul>
+<h4>📍 Detalle de paradas</h4>
+<ul>
+{% for p in ruta.paradas %}
+{% if loop.first %}
+<li class="acopio">🏢 ACOPIO (SALIDA)<br>{{ p.direccion }}<br>⏰ {{ p.llegada }}</li>
+{% elif loop.last %}
+<li class="acopio">🏁 ACOPIO (REGRESO)<br>{{ p.direccion }}<br>⏰ {{ p.llegada }}</li>
+{% else %}
+<li class="parada">
+📍 {{ p.direccion }}<br>
+🕒 {{ p.llegada }} |
+⏳ {{ p.espera }} min |
+🚚 {{ p.salida }}
+</li>
+{% endif %}
+{% endfor %}
+</ul>
 {% endfor %}
 
+{% if no_visitadas %}
+<hr>
+<h3>❌ Paradas NO incluidas</h3>
+<ul>
+{% for p in no_visitadas %}
+<li class="no-visitada">
+{{ p.direccion }} | Franja: {{ p.franja }} | Espera: {{ p.espera }} min
+</li>
+{% endfor %}
+</ul>
+{% endif %}
+
+{% if sugerencias %}
+<hr>
+<h3>💡 Sugerencias automáticas</h3>
+<ul>
+{% for s in sugerencias %}
+<li class="no-visitada">
+<strong>{{ s.direccion }}</strong>
+<ul>
+{% for tip in s.sugerencias %}
+<li>👉 {{ tip }}</li>
+{% endfor %}
+</ul>
+</li>
+{% endfor %}
+</ul>
+{% endif %}
+
+<!-- 🔥 MAPA 🔥 -->
 <div id="map"></div>
 
 <script>
-    const rutas = {{ rutas | tojson }};
-</script>
-
-<script
-    src="https://maps.googleapis.com/maps/api/js?key={{ request.app.state.GOOGLE_MAPS_API_KEY }}">
+const rutas = {{ rutas | tojson }};
 </script>
 
 <script>
 function initMap() {
-
     const map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 11,
-        center: { lat: 40.7128, lng: -74.0060 } // New York por defecto
+        zoom: 8,
+        center: { lat: 40.0, lng: -74.5 }
     });
 
+    const bounds = new google.maps.LatLngBounds();
     const colors = ["#FF0000", "#0000FF", "#00AA00", "#FF9900"];
 
     rutas.forEach((ruta, i) => {
-        if (ruta.paradas.length < 2) return;
+        if (!ruta.paradas || ruta.paradas.length < 2) return;
 
-        const paradas = ruta.paradas.map(p => p.direccion);
+        const direcciones = ruta.paradas.map(p => p.direccion);
 
-        const waypoints = paradas.slice(1, -1).map(dir => ({
-            location: dir,
+        const waypoints = direcciones.slice(1, -1).map(d => ({
+            location: d,
             stopover: true
         }));
 
-        const directionsService = new google.maps.DirectionsService();
-        const directionsRenderer = new google.maps.DirectionsRenderer({
-            map: map,
+        const service = new google.maps.DirectionsService();
+        const renderer = new google.maps.DirectionsRenderer({
+            map,
             polylineOptions: {
                 strokeColor: colors[i % colors.length],
                 strokeWeight: 4
-            },
-            suppressMarkers: false
+            }
         });
 
-        directionsService.route({
-            origin: paradas[0],
-            destination: paradas[paradas.length - 1],
-            waypoints: waypoints,
+        service.route({
+            origin: direcciones[0],
+            destination: direcciones[direcciones.length - 1],
+            waypoints,
             travelMode: google.maps.TravelMode.DRIVING
-        }, (result, status) => {
+        }, (res, status) => {
             if (status === "OK") {
-                directionsRenderer.setDirections(result);
-            } else {
-                console.error("Error en ruta:", status);
+                renderer.setDirections(res);
+                res.routes[0].overview_path.forEach(p => bounds.extend(p));
+                map.fitBounds(bounds);
             }
         });
     });
 }
-initMap();
 </script>
 
-    {% if no_visitadas and no_visitadas|length > 0 %}
-    <hr>
-    <h3>❌ Paradas NO incluidas en la ruta</h3>
+<script
+  async
+  defer
+  src="https://maps.googleapis.com/maps/api/js?key={{ request.app.state.GOOGLE_MAPS_API_KEY }}&callback=initMap">
+</script>
 
-    <p>
-    Estas paradas no pudieron ser visitadas con las franjas y tiempos actuales.
-    Ajusta las franjas horarias o tiempos de espera e intenta nuevamente.
-    </p>
-
-    <ul>
-    {% for p in no_visitadas %}
-        <li>
-            🚫 <strong>{{ p.direccion }}</strong><br>
-            ⏰ Franja: {{ p.franja }}<br>
-            ⏳ Espera: {{ p.espera }} minutos
-        </li>
-    {% endfor %}
-    </ul>
-    {% endif %}
-    
 <br>
 <a href="/">← Volver</a>
 

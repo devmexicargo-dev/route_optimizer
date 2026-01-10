@@ -29,6 +29,29 @@ def franja_a_segundos(valor: str):
     return (6 * 60 * 60, 23 * 60 * 60)
 
 
+def analizar_no_visitada(direccion, franja, espera_min):
+    causas = []
+    sugerencias = []
+
+    if franja != "all":
+        causas.append("Franja horaria restrictiva")
+        sugerencias.append("Probar ampliar la franja a 'Todo el día'")
+
+    if espera_min > 10:
+        causas.append("Tiempo de espera elevado")
+        sugerencias.append("Reducir el tiempo de espera (5–10 minutos)")
+
+    if not causas:
+        causas.append("Conflicto con otras paradas")
+        sugerencias.append("Mover esta parada a otra ruta o dividir la jornada")
+
+    return {
+        "direccion": direccion,
+        "causas": causas,
+        "sugerencias": sugerencias
+    }
+
+
 # =========================
 # 🚀 APP
 # =========================
@@ -54,7 +77,7 @@ def optimize(
     acopio: str = Form(...),
     vehiculos: int = Form(...),
 
-    # 📍 Direcciones (hasta 19)
+    # Direcciones (hasta 19)
     direccion1: str = Form(""), direccion2: str = Form(""),
     direccion3: str = Form(""), direccion4: str = Form(""),
     direccion5: str = Form(""), direccion6: str = Form(""),
@@ -66,7 +89,7 @@ def optimize(
     direccion17: str = Form(""), direccion18: str = Form(""),
     direccion19: str = Form(""),
 
-    # 🕒 Franjas
+    # Franjas
     franja1: str = Form("all"), franja2: str = Form("all"),
     franja3: str = Form("all"), franja4: str = Form("all"),
     franja5: str = Form("all"), franja6: str = Form("all"),
@@ -78,7 +101,7 @@ def optimize(
     franja17: str = Form("all"), franja18: str = Form("all"),
     franja19: str = Form("all"),
 
-    # ⏳ Esperas
+    # Esperas
     espera1: int = Form(5), espera2: int = Form(5),
     espera3: int = Form(5), espera4: int = Form(5),
     espera5: int = Form(5), espera6: int = Form(5),
@@ -92,12 +115,6 @@ def optimize(
 ):
     print("Ruta creada por:", user)
 
-    vehiculos = int(vehiculos)
-
-    # =========================
-    # 📍 DIRECCIONES
-    # =========================
-
     direcciones = [
         direccion1, direccion2, direccion3, direccion4, direccion5,
         direccion6, direccion7, direccion8, direccion9, direccion10,
@@ -105,12 +122,7 @@ def optimize(
         direccion16, direccion17, direccion18, direccion19
     ]
     direcciones = [d for d in direcciones if d.strip()]
-
     addresses = [acopio] + direcciones
-
-    # =========================
-    # 🕒 VENTANAS HORARIAS
-    # =========================
 
     franjas = [
         franja1, franja2, franja3, franja4, franja5,
@@ -119,14 +131,9 @@ def optimize(
         franja16, franja17, franja18, franja19
     ]
 
-    time_windows = [(0, 23 * 60 * 60)]  # acopio
-
+    time_windows = [(0, 23 * 60 * 60)]
     for f in franjas[:len(direcciones)]:
         time_windows.append(franja_a_segundos(f))
-
-    # =========================
-    # ⏳ ESPERAS
-    # =========================
 
     esperas = [
         espera1, espera2, espera3, espera4, espera5,
@@ -136,10 +143,6 @@ def optimize(
     ][:len(direcciones)]
 
     service_times = [0] + [e * 60 for e in esperas]
-
-    # =========================
-    # ⚙️ OPTIMIZACIÓN
-    # =========================
 
     time_matrix = get_time_matrix(addresses)
 
@@ -159,13 +162,9 @@ def optimize(
     rutas_idx = resultado["routes"]
     no_visitadas_idx = resultado["unserved"]
 
-    # =========================
-    # 🗺️ RUTAS VISITADAS
-    # =========================
-
     rutas = []
-    MAX_PARADAS_POR_MAPA = 9
     vehiculo_visible = 1
+    MAX_PARADAS_POR_MAPA = 8
 
     for ruta in rutas_idx:
         if len(ruta) <= 2:
@@ -183,7 +182,6 @@ def optimize(
 
         mapas = []
         inicio = 0
-
         while inicio < len(paradas) - 1:
             fin = min(inicio + MAX_PARADAS_POR_MAPA, len(paradas))
             tramo = paradas[inicio:fin]
@@ -197,7 +195,7 @@ def optimize(
                 "url": "https://www.google.com/maps/dir/" + "/".join(encoded)
             })
 
-            inicio = fin - 1  # continuidad real
+            inicio = fin - 1
 
         rutas.append({
             "vehiculo": vehiculo_visible,
@@ -207,18 +205,24 @@ def optimize(
 
         vehiculo_visible += 1
 
-    # =========================
-    # ❌ PARADAS NO VISITADAS
-    # =========================
-
     no_visitadas = []
+    sugerencias = []
 
     for idx in no_visitadas_idx:
-        no_visitadas.append({
+        parada = {
             "direccion": addresses[idx],
             "franja": franjas[idx - 1],
             "espera": esperas[idx - 1]
-        })
+        }
+
+        no_visitadas.append(parada)
+        sugerencias.append(
+            analizar_no_visitada(
+                parada["direccion"],
+                parada["franja"],
+                parada["espera"]
+            )
+        )
 
     guardar_rutas_excel(rutas, user)
 
@@ -226,9 +230,9 @@ def optimize(
         "result.html",
         {
             "request": request,
-            "acopio": acopio,
             "rutas": rutas,
-            "no_visitadas": no_visitadas
+            "no_visitadas": no_visitadas,
+            "sugerencias": sugerencias
         }
     )
 
