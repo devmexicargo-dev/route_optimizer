@@ -4,18 +4,19 @@ import os
 
 FILE_PATH = "historial_rutas.xlsx"
 
+
 def guardar_rutas_excel(rutas, usuario):
     rows = []
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     for ruta in rutas:
         vehiculo = ruta["vehiculo"]
-        paradas = ruta["paradas"]
 
-        for orden, parada in enumerate(paradas):
+        for orden, parada in enumerate(ruta["paradas"]):
+
             if orden == 0:
                 tipo = "ACOPIO SALIDA"
-            elif orden == len(paradas) - 1:
+            elif orden == len(ruta["paradas"]) - 1:
                 tipo = "ACOPIO REGRESO"
             else:
                 tipo = "RECOGIDA"
@@ -26,8 +27,14 @@ def guardar_rutas_excel(rutas, usuario):
                 "vehiculo": vehiculo,
                 "orden": orden,
                 "tipo": tipo,
-                "direccion": parada
+                "direccion": parada["direccion"],
+                "llegada": parada["llegada"],
+                "espera_min": parada["espera"],
+                "salida": parada["salida"]
             })
+
+    if not rows:
+        return
 
     df_nuevo = pd.DataFrame(rows)
 

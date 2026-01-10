@@ -29,7 +29,7 @@ def optimize_routes(time_matrix, time_windows, service_times, num_vehicles):
     routing.AddDimension(
         transit_callback_index,
         6 * 60 * 60,      # slack (espera)
-        17 * 60 * 60,     # jornada máxima
+        18 * 60 * 60,     # jornada máxima
         False,
         "Time"
     )
@@ -68,29 +68,39 @@ def optimize_routes(time_matrix, time_windows, service_times, num_vehicles):
         return None
 
     # 🔹 EXTRAER RUTAS + TIEMPOS
-    routes = []
+    routes = [[] for _ in range(num_vehicles)]
+    visited_nodes = set()
 
     for vehicle_id in range(num_vehicles):
         index = routing.Start(vehicle_id)
-        vehicle_route = []
 
-        while True:
+        while not routing.IsEnd(index):
             node = manager.IndexToNode(index)
-            arrival_time = solution.Value(
-                time_dimension.CumulVar(index)
-            )
-
-            vehicle_route.append({
+            routes[vehicle_id].append({
                 "node": node,
-                "arrival": arrival_time,
+                "arrival": solution.Value(time_dimension.CumulVar(index)),
                 "service": service_times[node]
             })
-
-            if routing.IsEnd(index):
-                break
-
+            visited_nodes.add(node)
             index = solution.Value(routing.NextVar(index))
 
-        routes.append(vehicle_route)
+        # nodo final (acopio regreso)
+        node = manager.IndexToNode(index)
+        routes[vehicle_id].append({
+            "node": node,
+            "arrival": solution.Value(time_dimension.CumulVar(index)),
+            "service": 0
+        })
+        visited_nodes.add(node)
 
-    return routes
+    # 🔴 Detectar no visitados (excepto acopio = 0)
+    unserved = []
+
+    for node in range(1, num_locations):
+        if node not in visited_nodes:
+            unserved.append(node)
+
+    return {
+        "routes": routes,
+        "unserved": unserved
+    }

@@ -63,11 +63,22 @@
     <h3>🚚 Vehículo {{ ruta.vehiculo }}</h3>
 
     <p>
-        🧭 
-        <a href="{{ ruta.maps_url }}" target="_blank"
-        style="font-weight:bold; color:#1d6f42;">
-            Abrir ruta en Google Maps
-        </a>
+        {% if ruta.mapas %}
+            <h4>🧭 Tramos de la ruta</h4>
+            <ul>
+                {% for m in ruta.mapas %}
+                    <li>
+                        🧭 Tramo {{ m.tramo }}<br>
+                        Desde: {{ m.desde }}<br>
+                        Hasta: {{ m.hasta }}<br>
+                        <a href="{{ m.url }}" target="_blank"
+                        style="color:#1d6f42; font-weight:bold;">
+                            Abrir en Google Maps
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
     </p>
 
 
@@ -153,10 +164,29 @@ function initMap() {
         });
     });
 }
-
 initMap();
 </script>
 
+    {% if no_visitadas and no_visitadas|length > 0 %}
+    <hr>
+    <h3>❌ Paradas NO incluidas en la ruta</h3>
+
+    <p>
+    Estas paradas no pudieron ser visitadas con las franjas y tiempos actuales.
+    Ajusta las franjas horarias o tiempos de espera e intenta nuevamente.
+    </p>
+
+    <ul>
+    {% for p in no_visitadas %}
+        <li>
+            🚫 <strong>{{ p.direccion }}</strong><br>
+            ⏰ Franja: {{ p.franja }}<br>
+            ⏳ Espera: {{ p.espera }} minutos
+        </li>
+    {% endfor %}
+    </ul>
+    {% endif %}
+    
 <br>
 <a href="/">← Volver</a>
 
