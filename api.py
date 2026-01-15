@@ -10,6 +10,8 @@ from fastapi.templating import Jinja2Templates
 from google_maps import get_time_matrix
 from optimizer import optimize_routes
 from storage import guardar_rutas_excel
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 
 # =========================
@@ -57,6 +59,7 @@ def analizar_no_visitada(direccion, franja, espera_min):
 # =========================
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
 app.state.GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 templates = Jinja2Templates(directory="templates")
 
