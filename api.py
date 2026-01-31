@@ -250,3 +250,97 @@ def download_excel(user: str = Depends(get_current_user)):
         filename="historial_rutas.xlsx",
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+
+@app.post("/reoptimize", response_class=HTMLResponse)
+def reoptimize(
+    request: Request,
+    user: str = Depends(get_current_user),
+
+    acopio: str = Form(...),
+    vehiculos: int = Form(...),
+
+    direccion_all: list[str] = Form(...),
+    franja_all: list[str] = Form(...),
+    espera_all: list[int] = Form(...),
+
+    direccion_no: list[str] = Form(...)
+):
+    """
+    Reoptimiza SOLO las paradas no atendidas
+    sin modificar las paradas válidas
+    """
+
+    # 🧱 Reconstruimos estructura original
+    addresses = [acopio]
+    time_windows = [(0, 23 * 60 * 60)]
+    service_times = [0]
+
+    # 🔹 Paradas originales (NO se tocan)
+    for direccion, franja, espera in zip(direccion_all, franja_all, espera_all):
+        addresses.append(direccion)
+        time_windows.append(franja_a_segundos(franja))
+        service_times.append(espera * 60)
+
+    # 🔥 Paradas NO incluidas (REOPTIMIZADAS)
+    for direccion in direccion_no:
+        addresses.append(direccion)
+        time_windows.append((0, 23 * 60 * 60))   # todo el día
+        service_times.append(5 * 60)             # 5 min
+
+    # ⚠️ SIN Google → modo mock o cache
+    time_matrix = get_time_matrix(addresses)
+
+    resultado = optimize_routes(
+        time_matrix,
+        time_windows,
+        service_times,
+        vehiculos
+    )
+
+    if resultado is None:
+        return templates.TemplateResponse(
+            "result.html",
+            {
+                "request": request,
+                "error": "No fue posible reoptimizar las paradas."
+            }
+        )
+
+    rutas_idx = resultado["routes"]
+
+    rutas = []
+    vehiculo_visible = 1
+
+    for ruta in rutas_idx:
+        if len(ruta) <= 2:
+            continue
+
+        paradas = []
+        for paso in ruta:
+            idx = paso["node"]
+            paradas.append({
+                "direccion": addresses[idx],
+                "llegada": segundos_a_hora(paso["arrival"]),
+                "espera": paso["service"] // 60,
+                "salida": segundos_a_hora(paso["arrival"] + paso["service"])
+            })
+
+        rutas.append({
+            "vehiculo": vehiculo_visible,
+            "paradas": paradas
+        })
+
+        vehiculo_visible += 1
+
+    guardar_rutas_excel(rutas, user)
+
+    return templates.TemplateResponse(
+        "result.html",
+        {
+            "request": request,
+            "rutas": rutas,
+            "no_visitadas": [],
+            "sugerencias": []
+        }
+    )

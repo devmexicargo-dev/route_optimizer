@@ -1,37 +1,49 @@
 import os
-import googlemaps
-from dotenv import load_dotenv
+import random
+import time
 
-load_dotenv()
+USE_GOOGLE = os.getenv("USE_GOOGLE_MAPS", "false").lower() == "true"
 
-API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
-gmaps = googlemaps.Client(key=API_KEY)
+# ======================================================
+# 🚦 FUNCIÓN PRINCIPAL (la que usa tu API)
+# ======================================================
+def get_time_matrix(addresses):
+    if not USE_GOOGLE:
+        print("🟢 MODO MOCK ACTIVO → Google Maps NO se usa")
+        return fake_time_matrix(len(addresses))
+    else:
+        print("🔴 MODO GOOGLE ACTIVO → Se usa Google Maps")
+        return real_google_time_matrix(addresses)
 
 
-def get_time_matrix(addresses: list[str]):
-    """
-    Devuelve una matriz NxN con tiempos de viaje en segundos
-    """
+# ======================================================
+# 🟢 MATRIZ FALSA (COSTO $0)
+# ======================================================
+def fake_time_matrix(n):
     matrix = []
 
-    for origin in addresses:
+    for i in range(n):
         row = []
-        response = gmaps.distance_matrix(
-            origins=[origin],
-            destinations=addresses,
-            mode="driving",
-            departure_time="now",
-            traffic_model="best_guess"
-        )
-
-        elements = response["rows"][0]["elements"]
-
-        for e in elements:
-            if e["status"] == "OK":
-                row.append(e["duration_in_traffic"]["value"])
+        for j in range(n):
+            if i == j:
+                row.append(0)
             else:
-                row.append(999999)
-
+                # tiempos realistas: 5 a 45 min
+                row.append(random.randint(300, 2700))
         matrix.append(row)
 
     return matrix
+
+
+# ======================================================
+# 🔴 MATRIZ REAL (Google) → solo producción
+# ======================================================
+def real_google_time_matrix(addresses):
+    """
+    ⚠️ ESTA FUNCIÓN SOLO SE EJECUTA
+    CUANDO USE_GOOGLE_MAPS=true
+    """
+    # AQUÍ VA TU IMPLEMENTACIÓN REAL EXISTENTE
+    raise NotImplementedError(
+        "Google Maps deshabilitado en modo desarrollo"
+    )

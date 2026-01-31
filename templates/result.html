@@ -1,130 +1,195 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Resultado de la optimización</title>
+<meta charset="UTF-8">
+<title>Resultado de la optimización</title>
 
-    <style>
-        body { font-family: Arial, sans-serif; }
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+}
 
-        h3, h4 { margin-top: 25px; }
+.container {
+    display: grid;
+    grid-template-columns: 45% 55%;
+    height: 100vh;
+}
 
-        ul { list-style: none; padding-left: 0; }
+.left {
+    padding: 25px;
+    overflow-y: auto;
+}
 
-        li {
-            margin-bottom: 10px;
-            padding: 10px;
-            border-left: 4px solid #ccc;
-            background: #f9f9f9;
-        }
+.right {
+    border-left: 1px solid #ccc;
+}
 
-        .acopio {
-            border-left-color: #1d6f42;
-            background: #e9f6ef;
-            font-weight: bold;
-        }
+h3, h4 {
+    margin-top: 25px;
+}
 
-        .parada { border-left-color: #d9534f; }
+ul {
+    list-style: none;
+    padding-left: 0;
+}
 
-        .no-visitada {
-            border-left-color: #777;
-            background: #f0f0f0;
-        }
+li {
+    margin-bottom: 10px;
+    padding: 10px;
+    border-left: 4px solid #ccc;
+    background: #f9f9f9;
+}
 
-        .btn {
-            padding: 10px 15px;
-            background: #1d6f42;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: bold;
-            display: inline-block;
-            margin-bottom: 20px;
-        }
+.acopio {
+    border-left-color: #1d6f42;
+    background: #e9f6ef;
+    font-weight: bold;
+}
 
-        /* 🔥 CLAVE ABSOLUTA 🔥 */
-        #map {
-            width: 100%;
-            height: 600px;
-            margin-top: 30px;
-            border: 1px solid #ccc;
-        }
-    </style>
+.parada {
+    border-left-color: #d9534f;
+}
+
+.no-visitada {
+    border-left-color: #777;
+    background: #f0f0f0;
+}
+
+.btn {
+    padding: 10px 15px;
+    background: #1d6f42;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+    display: inline-block;
+    margin-bottom: 15px;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-optimizar {
+    background: linear-gradient(135deg, #ff9800, #f57c00);
+    color: #fff;
+    margin-top: 15px;
+    width: 100%;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+}
+</style>
 </head>
 
 <body>
 
+<div class="container">
+
+<!-- 🔹 IZQUIERDA -->
+<div class="left">
+
 <h2>Resultado de la optimización</h2>
 
-<a href="/download/excel" class="btn">📥 Descargar historial de rutas (Excel)</a>
+<a href="/download/excel" class="btn">📥 Descargar Excel</a>
 
 {% for ruta in rutas %}
 <h3>🚚 Vehículo {{ ruta.vehiculo }}</h3>
 
-{% if ruta.mapas %}
-<h4>🧭 Tramos de la ruta</h4>
-<ul>
-{% for m in ruta.mapas %}
-<li>
-<strong>Tramo {{ m.tramo }}</strong><br>
-Desde: {{ m.desde }}<br>
-Hasta: {{ m.hasta }}<br>
-<a href="{{ m.url }}" target="_blank">Abrir en Google Maps</a>
-</li>
-{% endfor %}
-</ul>
-{% endif %}
-
 <h4>📍 Detalle de paradas</h4>
 <ul>
 {% for p in ruta.paradas %}
-{% if loop.first %}
-<li class="acopio">🏢 ACOPIO (SALIDA)<br>{{ p.direccion }}<br>⏰ {{ p.llegada }}</li>
-{% elif loop.last %}
-<li class="acopio">🏁 ACOPIO (REGRESO)<br>{{ p.direccion }}<br>⏰ {{ p.llegada }}</li>
-{% else %}
-<li class="parada">
-📍 {{ p.direccion }}<br>
-🕒 {{ p.llegada }} |
-⏳ {{ p.espera }} min |
-🚚 {{ p.salida }}
-</li>
-{% endif %}
+    {% if loop.first %}
+        <li class="acopio">
+            🏢 ACOPIO (SALIDA)<br>
+            {{ p.direccion }}<br>
+            ⏰ {{ p.llegada }}
+        </li>
+    {% elif loop.last %}
+        <li class="acopio">
+            🏁 ACOPIO (REGRESO)<br>
+            {{ p.direccion }}<br>
+            ⏰ {{ p.llegada }}
+        </li>
+    {% else %}
+        <li class="parada">
+            📍 {{ p.direccion }}<br>
+            🕒 {{ p.llegada }} | ⏳ {{ p.espera }} min | 🚚 {{ p.salida }}
+        </li>
+    {% endif %}
 {% endfor %}
 </ul>
 {% endfor %}
 
 {% if no_visitadas %}
 <hr>
+
 <h3>❌ Paradas NO incluidas</h3>
 <ul>
 {% for p in no_visitadas %}
-<li class="no-visitada">
-{{ p.direccion }} | Franja: {{ p.franja }} | Espera: {{ p.espera }} min
-</li>
+    <li class="no-visitada">
+        {{ p.direccion }} |
+        Franja: {{ p.franja }} |
+        Espera: {{ p.espera }} min
+    </li>
 {% endfor %}
 </ul>
-{% endif %}
 
-{% if sugerencias %}
-<hr>
 <h3>💡 Sugerencias automáticas</h3>
 <ul>
 {% for s in sugerencias %}
-<li class="no-visitada">
-<strong>{{ s.direccion }}</strong>
-<ul>
-{% for tip in s.sugerencias %}
-<li>👉 {{ tip }}</li>
+    <li class="no-visitada">
+        <strong>{{ s.direccion }}</strong>
+        <ul>
+        {% for tip in s.sugerencias %}
+            <li>👉 {{ tip }}</li>
+        {% endfor %}
+        </ul>
+    </li>
 {% endfor %}
 </ul>
-</li>
-{% endfor %}
-</ul>
+
+<!-- 🔁 FORM REOPTIMIZAR (OPCIÓN A CORRECTA) -->
+<form method="post" action="/reoptimize">
+
+    <input type="hidden" name="acopio" value="{{ rutas[0].paradas[0].direccion }}">
+    <input type="hidden" name="vehiculos" value="{{ rutas|length }}">
+
+    {# 👉 TODAS las paradas originales #}
+    {% for ruta in rutas %}
+        {% for p in ruta.paradas %}
+            {% if not loop.first and not loop.last %}
+                <input type="hidden" name="direccion_all" value="{{ p.direccion }}">
+                <input type="hidden" name="franja_all" value="{{ p.franja if p.franja else 'all' }}">
+                <input type="hidden" name="espera_all" value="{{ p.espera }}">
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+
+    {# 👉 SOLO las NO incluidas #}
+    {% for p in no_visitadas %}
+        <input type="hidden" name="direccion_no" value="{{ p.direccion }}">
+    {% endfor %}
+
+    <button type="submit" class="btn btn-optimizar">
+        🔄 Reoptimizar usando sugerencias
+    </button>
+</form>
+
 {% endif %}
 
-<!-- 🔥 MAPA 🔥 -->
-<div id="map"></div>
+<a href="/">← Volver</a>
+
+</div>
+
+<!-- 🔹 DERECHA -->
+<div class="right">
+    <div id="map"></div>
+</div>
+
+</div>
 
 <script>
 const rutas = {{ rutas | tojson }};
@@ -138,12 +203,10 @@ function initMap() {
     });
 
     const bounds = new google.maps.LatLngBounds();
-    const colors = ["#FF0000", "#0000FF", "#00AA00", "#FF9900"];
 
-    rutas.forEach((ruta, i) => {
-        if (!ruta.paradas || ruta.paradas.length < 2) return;
-
+    rutas.forEach(ruta => {
         const direcciones = ruta.paradas.map(p => p.direccion);
+        if (direcciones.length < 2) return;
 
         const waypoints = direcciones.slice(1, -1).map(d => ({
             location: d,
@@ -151,19 +214,13 @@ function initMap() {
         }));
 
         const service = new google.maps.DirectionsService();
-        const renderer = new google.maps.DirectionsRenderer({
-            map,
-            polylineOptions: {
-                strokeColor: colors[i % colors.length],
-                strokeWeight: 4
-            }
-        });
+        const renderer = new google.maps.DirectionsRenderer({ map });
 
         service.route({
             origin: direcciones[0],
             destination: direcciones[direcciones.length - 1],
             waypoints,
-            travelMode: google.maps.TravelMode.DRIVING
+            travelMode: "DRIVING"
         }, (res, status) => {
             if (status === "OK") {
                 renderer.setDirections(res);
@@ -175,14 +232,10 @@ function initMap() {
 }
 </script>
 
-<script
-  async
-  defer
-  src="https://maps.googleapis.com/maps/api/js?key={{ request.app.state.GOOGLE_MAPS_API_KEY }}&callback=initMap">
+<script async defer
+src="https://maps.googleapis.com/maps/api/js?key={{ request.app.state.GOOGLE_MAPS_API_KEY }}&callback=initMap">
 </script>
-
-<br>
-<a href="/">← Volver</a>
 
 </body>
 </html>
+
