@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Resultado de la optimización</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+}
+
+.container {
+    display: grid;
+    grid-template-columns: 45% 55%;
+    height: 100vh;
+}
+
+.left {
+    padding: 25px;
+    overflow-y: auto;
+}
+
+.right {
+    border-left: 1px solid #ccc;
+}
+
+h3, h4 {
+    margin-top: 25px;
+}
+
+ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+li {
+    margin-bottom: 10px;
+    padding: 10px;
+    border-left: 4px solid #ccc;
+    background: #f9f9f9;
+}
+
+.acopio {
+    border-left-color: #1d6f42;
+    background: #e9f6ef;
+    font-weight: bold;
+}
+
+.parada {
+    border-left-color: #d9534f;
+}
+
+.no-visitada {
+    border-left-color: #777;
+    background: #f0f0f0;
+}
+
+.btn {
+    padding: 10px 15px;
+    background: #1d6f42;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+    display: inline-block;
+    margin-bottom: 15px;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-optimizar {
+    background: linear-gradient(135deg, #ff9800, #f57c00);
+    color: #fff;
+    margin-top: 15px;
+    width: 100%;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- 🔹 IZQUIERDA -->
+<div class="left">
+
+<h2>Resultado de la optimización</h2>
+
+<a href="/download/excel" class="btn">📥 Descargar Excel</a>
+
+{% for ruta in rutas %}
+<h3>🚚 Vehículo {{ ruta.vehiculo }}</h3>
+
+{% if ruta.mapas %}
+<h4>🧭 Tramos de la ruta</h4>
+<ul>
+{% for m in ruta.mapas %}
+    <li>
+        <strong>Tramo {{ m.tramo }}</strong><br>
+        Desde: {{ m.desde }}<br>
+        Hasta: {{ m.hasta }}<br>
+        <a href="{{ m.url }}" target="_blank">Abrir en Google Maps</a>
+    </li>
+{% endfor %}
+</ul>
+{% endif %}
+
+<h4>📍 Detalle de paradas</h4>
+<ul>
+{% for p in ruta.paradas %}
+    {% if loop.first %}
+        <li class="acopio">
+            🏢 ACOPIO (SALIDA)<br>
+            {{ p.direccion }}<br>
+            ⏰ {{ p.llegada }}
+        </li>
+    {% elif loop.last %}
+        <li class="acopio">
+            🏁 ACOPIO (REGRESO)<br>
+            {{ p.direccion }}<br>
+            ⏰ {{ p.llegada }}
+        </li>
+    {% else %}
+        <li class="parada">
+            📍 {{ p.direccion }}<br>
+            🕒 {{ p.llegada }} | ⏳ {{ p.espera }} min | 🚚 {{ p.salida }}
+        </li>
+    {% endif %}
+{% endfor %}
+</ul>
+{% endfor %}
+
+{% if no_visitadas %}
+<hr>
+
+<h3>❌ Paradas NO incluidas</h3>
+<ul>
+{% for p in no_visitadas %}
+    <li class="no-visitada">
+        {{ p.direccion }} |
+        Franja: {{ p.franja }} |
+        Espera: {{ p.espera }} min
+    </li>
+{% endfor %}
+</ul>
+
+<h3>💡 Sugerencias automáticas</h3>
+<ul>
+{% for s in sugerencias %}
+    <li class="no-visitada">
+        <strong>{{ s.direccion }}</strong>
+        <ul>
+        {% for tip in s.sugerencias %}
+            <li>👉 {{ tip }}</li>
+        {% endfor %}
+        </ul>
+    </li>
+{% endfor %}
+</ul>
+
+<form method="post" action="/reoptimize">
+    <input type="hidden" name="acopio" value="{{ rutas[0].paradas[0].direccion }}">
+    <input type="hidden" name="vehiculos" value="{{ rutas|length }}">
+
+    {% for p in no_visitadas %}
+        <input type="hidden" name="direccion_no" value="{{ p.direccion }}">
+    {% endfor %}
+
+    <button type="submit" class="btn btn-optimizar">
+        🔄 Reoptimizar usando sugerencias
+    </button>
+</form>
+{% endif %}
+
+<a href="/">← Volver</a>
+
+</div>
+
+<!-- 🔹 DERECHA -->
+<div class="right">
+    <div id="map"></div>
+</div>
+
+</div>
+
+<!-- ✅ UN SOLO BLOQUE JS -->
+<script id="rutas-data" type="application/json">
+{{ rutas | tojson }}
+</script>
+
+<script>
+const rutas = JSON.parse(
+    document.getElementById("rutas-data").textContent
+);
+
+function initMap() {
+    const map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 8,
+        center: { lat: 40.0, lng: -74.5 }
+    });
+
+    const bounds = new google.maps.LatLngBounds();
+
+    rutas.forEach(ruta => {
+        const direcciones = ruta.paradas.map(p => p.direccion);
+        if (direcciones.length < 2) return;
+
+        const waypoints = direcciones.slice(1, -1).map(d => ({
+            location: d,
+            stopover: true
+        }));
+
+        const service = new google.maps.DirectionsService();
+        const renderer = new google.maps.DirectionsRenderer({ map });
+
+        service.route({
+            origin: direcciones[0],
+            destination: direcciones[direcciones.length - 1],
+            waypoints,
+            travelMode: "DRIVING"
+        }, (res, status) => {
+            if (status === "OK") {
+                renderer.setDirections(res);
+                res.routes[0].overview_path.forEach(p => bounds.extend(p));
+                map.fitBounds(bounds);
+            }
+        });
+    });
+}
+</script>
+
+<script async defer
+src="https://maps.googleapis.com/maps/api/js?key={{ request.app.state.GOOGLE_MAPS_API_KEY }}&callback=initMap">
+</script>
+
+</body>
+</html>

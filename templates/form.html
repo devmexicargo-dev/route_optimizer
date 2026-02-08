@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Optimización de rutas</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        h2 { margin-bottom: 20px; }
+
+        label { font-weight: bold; }
+
+        input, select {
+            height: 38px;
+            padding: 6px 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        /* Vehículos */
+        .vehiculos-select {
+            width: 180px;
+            margin-bottom: 20px;
+        }
+
+        /* Grid */
+        .tabla-rutas {
+            display: grid;
+            grid-template-columns: 3fr 1.4fr 100px;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .header {
+            font-weight: bold;
+            background: #f1f1f1;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        /* Botones */
+        .btn {
+            padding: 10px 14px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-add {
+            background: #007bff;
+            color: white;
+            margin-bottom: 15px;
+        }
+
+        .btn-add:hover {
+            background: #0056b3;
+        }
+
+        .btn-optimizar {
+            margin-top: 30px;
+            width: 100%;
+            padding: 18px;
+            font-size: 18px;
+            background: linear-gradient(135deg, #1d6f42, #28a745);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .btn-optimizar:hover {
+            background: linear-gradient(135deg, #155d34, #218838);
+        }
+
+        small { color: #555; }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .logo {
+            height: 55px;
+            object-fit: contain;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div class="header-top">
+        <h2>Optimización de Rutas</h2>
+
+        <img
+            src="/static/Mexicargo_Logo.png"
+            alt="Mexicargo"
+            style="height:100px"
+            class="logo"
+        >
+    </div>
+
+<form method="post" action="/optimize">
+
+    <!-- VEHÍCULOS -->
+    <label>Número de vehículos</label><br>
+    <select name="vehiculos" class="vehiculos-select">
+        <option value="1">1 vehículo</option>
+        <option value="2">2 vehículos</option>
+        <option value="3">3 vehículos</option>
+    </select>
+    <br>
+
+    <!-- ACOPIO -->
+    <label>Dirección de acopio</label>
+    <div class="tabla-rutas">
+        <input type="text" name="acopio"
+               value="107 Cedar Ave, Egg Harbor Township, NJ" required>
+        <div></div>
+        <div></div>
+    </div>
+
+    <!-- HEADERS -->
+    <div class="tabla-rutas">
+        <div class="header">📍 Dirección</div>
+        <div class="header">⏰ Franja horaria</div>
+        <div class="header">⏳ Espera</div>
+    </div>
+
+    <!-- CONTENEDOR DINÁMICO -->
+    <div id="contenedor-direcciones"></div>
+
+    <button type="button" class="btn btn-add" onclick="agregarFila()">
+        ➕ Agregar dirección
+    </button>
+
+    <br>
+    <small>Máximo 19 direcciones</small>
+
+    <button type="submit" class="btn-optimizar">
+        🚀 Optimizar ruta
+    </button>
+<hr>
+<hr>
+<hr>
+</form>
+
+<script>
+let contador = 0;
+const maxDirecciones = 19;
+
+function agregarFila() {
+    if (contador >= maxDirecciones) return;
+
+    contador++;
+
+    const fila = document.createElement("div");
+    fila.className = "tabla-rutas";
+
+    fila.innerHTML = `
+        <input type="text" name="direccion${contador}" placeholder="Dirección ${contador}">
+        <select name="franja${contador}">
+            <option value="all">Todo el día</option>
+            <option value="am">AM (06:00 am – 14:00 pm)</option>
+            <option value="pm">PM (14:00 am – 23:00 pm)</option>
+        </select>
+        <input type="number" name="espera${contador}" value="5" min="1" max="60">
+    `;
+
+    document.getElementById("contenedor-direcciones").appendChild(fila);
+}
+
+// Arranca con 1 fila visible
+agregarFila();
+</script>
+
+</body>
+</html>

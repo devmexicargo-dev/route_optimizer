@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+env/
+venv/
+
+# Variables de entorno
+.env
+
+# Archivos locales
+historial_rutas.xlsx
+
+# SO / editor
+.DS_Store
+.vscode/
+.idea/
