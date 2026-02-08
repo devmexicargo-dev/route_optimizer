@@ -8,6 +8,7 @@ security = HTTPBasic()
 USERS = {
     "asesor1": "clave123",
     "asesor2": "clave456",
+    "jquiroag": "Rhuman851129",
     "admin": "admin123"
 }
 
